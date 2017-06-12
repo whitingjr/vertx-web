@@ -83,6 +83,56 @@ public class Utils extends io.vertx.core.impl.Utils {
     }
   }
 
+  public static String newNormalisePath(String path, boolean urldecode) {
+     if (path == null) {
+        return "/";
+      }
+
+      if (path.charAt(0) != '/') {
+        path = "/" + path;
+      }
+
+      try {
+        boolean needsNormalise = false;
+        StringBuilder result = new StringBuilder(path.length());
+
+        for (int i = 0; i < path.length(); i++) {
+          char c = path.charAt(i);
+
+          if (c == '+') {
+            result.append(' ');
+            needsNormalise = true;
+          } else if (c == '/') {
+            if (i == 0 || result.charAt(result.length() - 1) != '/')
+              result.append(c);
+            else
+              needsNormalise = true;
+          } else if (urldecode && c == '%') {
+            i = processEscapeSequence(path, result, i);
+            needsNormalise = true;
+          } else if (c == '.') {
+            if (i == 0 || result.charAt(result.length() - 1) != '.'){
+              result.append(c);
+            }  else {
+              result.deleteCharAt(result.length() - 1);
+              needsNormalise = true;
+            }
+          } else {
+            result.append(c);
+          }
+        }
+
+//        return result.toString();
+        if (needsNormalise)
+          return result.toString();
+        else
+          return path;
+
+      } catch (UnsupportedEncodingException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
   /**
    * Processes a escape sequence in path
    *
