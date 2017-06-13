@@ -41,9 +41,14 @@ public class Utils extends io.vertx.core.impl.Utils {
   private static final Pattern EQUAL_SPLITTER = Pattern.compile(" *= *");
 
   public static String normalisePath(String path) {
-    return normalisePath(path, true);
+//    return normalisePath(path, true);
+    return null;
   }
 
+  public static String path(String path, boolean urldecode) {
+     return path;
+   }
+  
   public static String normalisePath(String path, boolean urldecode) {
     if (path == null) {
       return "/";
@@ -83,55 +88,121 @@ public class Utils extends io.vertx.core.impl.Utils {
     }
   }
 
+  static class ScannerBuilder{
+    boolean scanMode = false;
+    boolean normalized = false;
+    StringBuilder builder = null;
+    char prior = ' ';
+    String path = null;
+    
+    /**
+     * Contstructor that will initialize based on the chosen
+     * mode.
+     * @param mode enable the scan mode to no-op appending
+     * @param p path that is being processed, a null cause a NPE
+     */
+    ScannerBuilder(boolean mode, String p) {
+      setScanMode(mode);
+      path = p;
+    }
+    void setScanMode(boolean mode){
+      scanMode = mode;
+      if (!scanMode){
+        builder = new StringBuilder(); //avoid setting the capacity
+      }
+    }
+
+    void append(char c){
+      prior = c;
+      if (!scanMode){
+        builder.append(c);
+      }
+    }
+
+    void normalizeAppend(char c){
+      normalized = true;
+      prior = c;
+      if (!scanMode){
+        builder.append(c);
+      }
+    }
+
+    void normalizeDelete(){
+      normalized = true;
+      if (!scanMode){
+        builder.deleteCharAt(builder.length() -1);
+      }
+      prior = path.charAt(builder.length() -1); // update char to not break normalisation routine
+    }
+
+    char prior(){
+      return builder.charAt(builder.length()-1);
+    }
+
+    void prePend(char c){
+      normalized = true;
+      prior = c;
+      if (!scanMode){
+        builder.append(c);
+      }
+    }
+
+    char charAt(int position){
+      return builder.charAt(position);
+    }
+
+    boolean isNormalised(){
+      return normalized;
+    }
+  }
+
   public static String newNormalisePath(String path, boolean urldecode) {
      if (path == null) {
         return "/";
       }
 
-      if (path.charAt(0) != '/') {
-        path = "/" + path;
-      }
+    try {
+      ScannerBuilder builder = new ScannerBuilder(true, path);
+      normalise(builder, path, urldecode);
 
-      try {
-        boolean needsNormalise = false;
-        StringBuilder result = new StringBuilder(path.length());
+      if (builder.isNormalised()){
+        builder.setScanMode(false);
+        normalise(builder, path, urldecode);
+        return builder.toString();
+      } else
+        return path;
 
-        for (int i = 0; i < path.length(); i++) {
-          char c = path.charAt(i);
+    } catch (UnsupportedEncodingException e) {
+      throw new IllegalStateException(e);
+    }
+  }
 
-          if (c == '+') {
-            result.append(' ');
-            needsNormalise = true;
-          } else if (c == '/') {
-            if (i == 0 || result.charAt(result.length() - 1) != '/')
-              result.append(c);
-            else
-              needsNormalise = true;
-          } else if (urldecode && c == '%') {
-            i = processEscapeSequence(path, result, i);
-            needsNormalise = true;
-          } else if (c == '.') {
-            if (i == 0 || result.charAt(result.length() - 1) != '.'){
-              result.append(c);
-            }  else {
-              result.deleteCharAt(result.length() - 1);
-              needsNormalise = true;
-            }
-          } else {
-            result.append(c);
-          }
+  private static void normalise(ScannerBuilder builder, String path, boolean urldecode)
+      throws UnsupportedEncodingException{
+    if (path.charAt(0) != '/') {
+      builder.normalizeAppend('/');
+    }
+    for (int i = 0; i < path.length(); i++) {
+      char c = path.charAt(i);
+  
+      if (c == '+') {
+        builder.append(' ');
+      } else if (c == '/') {
+        if (i == 0 || builder.prior() != '/')
+          builder.append(c);
+      } else if (urldecode && c == '%') {
+        i = processEscapeSequence(path, builder, i);
+      } else if (c == '.') {
+        if (i == 0 || builder.prior() != '.'){
+          builder.append(c);
+        }  else {
+          builder.normalizeDelete();
         }
-
-//        return result.toString();
-        if (needsNormalise)
-          return result.toString();
-        else
-          return path;
-
-      } catch (UnsupportedEncodingException e) {
-        throw new IllegalStateException(e);
+      } else {
+        builder.append(c);
       }
     }
+  }
 
   /**
    * Processes a escape sequence in path
@@ -146,6 +217,39 @@ public class Utils extends io.vertx.core.impl.Utils {
    * @throws UnsupportedEncodingException
    *           If the escape sequence does not represent a valid UTF-8 string
    */
+  private static int processEscapeSequence(String path, ScannerBuilder result, int i) throws UnsupportedEncodingException {
+    Buffer buf = Buffer.buffer(2);
+    do {
+      if (i >= path.length() - 2) {
+        throw new IllegalArgumentException("Invalid position for escape character: " + i);
+      }
+      int unescaped = Integer.parseInt(path.substring(i + 1, i + 3), 16);
+      if (unescaped < 0) {
+        throw new IllegalArgumentException("Invalid escape sequence: " + path.substring(i, i + 3));
+      }
+      buf.appendByte((byte) unescaped);
+      i += 3;
+    } while (i < path.length() && path.charAt(i) == '%');
+
+    String escapedSeq = new String(buf.getBytes(), StandardCharsets.UTF_8);
+
+    for (int j = 0; j < escapedSeq.length(); j++) {
+      char c = escapedSeq.charAt(j);
+      if (c == '/') {
+        if (j == 0 || result.prior() != '/')
+          result.append(c);
+      } else if (c == '.') {
+        if (j == 0 || result.prior != '.')
+          result.append(c);
+        else
+          result.normalizeDelete();
+      } else {
+        result.append(c);
+      }
+    }
+    return i - 1;
+  }
+
   private static int processEscapeSequence(String path, StringBuilder result, int i) throws UnsupportedEncodingException {
     Buffer buf = Buffer.buffer(2);
     do {

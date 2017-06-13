@@ -74,6 +74,7 @@ jmh {
    benchmarkMode = ['thrpt']
    profilers = ['gc']
    if (propertyExists('threads')) { threads=Integer.parseInt(lookup('threads')).intValue(); }
+   //jvmArgsAppend = " -XX:+UnlockCommercialFeatures -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints -XX:+FlightRecorder -XX:StartFlightRecording=compress=false,delay=2s,duration=24h,filename=/tmp/flight_record_vertx-normalizePath-replacement.jfr,settings=default-with-allocations "
    jvmArgsAppend = " "
    StringBuilder builder = new StringBuilder();
    jvmArgsAppend += builder.toString()
