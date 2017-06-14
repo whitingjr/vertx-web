@@ -9,12 +9,12 @@ public class  UtilsBenchmarkTest {
 
    @Benchmark
    public void current(){
-      Blackhole.consumeCPU( (long)Utils.normalisePath(p, false).charAt(0) );
+      Blackhole.consumeCPU( (long)Utils.oldnormalisePath(p, false).charAt(0) );
    }
 
    @Benchmark
    public void replacement(){
-      Blackhole.consumeCPU( (long)Utils.newNormalisePath(p, false).charAt(0) );
+      Blackhole.consumeCPU( (long)Utils.normalisePath(p, false).charAt(0) );
    }
    
    @Benchmark

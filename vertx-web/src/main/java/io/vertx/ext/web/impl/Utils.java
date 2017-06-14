@@ -49,7 +49,7 @@ public class Utils extends io.vertx.core.impl.Utils {
      return path;
    }
   
-  public static String normalisePath(String path, boolean urldecode) {
+  public static String oldnormalisePath(String path, boolean urldecode) {
     if (path == null) {
       return "/";
     }
@@ -93,7 +93,9 @@ public class Utils extends io.vertx.core.impl.Utils {
     boolean normalized = false;
     StringBuilder builder = null;
     char prior = ' ';
+    char precedingPrior = ' ';
     String path = null;
+    int position = 0; // path sensitive, not the builder
     
     /**
      * Contstructor that will initialize based on the chosen
@@ -102,48 +104,47 @@ public class Utils extends io.vertx.core.impl.Utils {
      * @param p path that is being processed, a null cause a NPE
      */
     ScannerBuilder(boolean mode, String p) {
-      setScanMode(mode);
       path = p;
+      setScanMode(mode);
     }
     void setScanMode(boolean mode){
       scanMode = mode;
       if (!scanMode){
-        builder = new StringBuilder(); //avoid setting the capacity
+        builder = new StringBuilder(path.substring(0, position)); //avoid setting the capacity
       }
     }
 
     void append(char c){
+      precedingPrior = prior;
       prior = c;
       if (!scanMode){
         builder.append(c);
       }
     }
 
-    void normalizeAppend(char c){
-      normalized = true;
-      prior = c;
+    void normalizeAppend(char c, int p){
       if (!scanMode){
+        precedingPrior = prior;
+        prior = c;
         builder.append(c);
+      } else {
+        normalized = true;
+        position = p;
       }
-    }
-
-    void normalizeDelete(){
-      normalized = true;
-      if (!scanMode){
-        builder.deleteCharAt(builder.length() -1);
-      }
-      prior = path.charAt(builder.length() -1); // update char to not break normalisation routine
     }
 
     char prior(){
-      return builder.charAt(builder.length()-1);
+      return prior;
     }
 
-    void prePend(char c){
-      normalized = true;
-      prior = c;
+    void prePend(char c, int p){
       if (!scanMode){
+        precedingPrior = prior;
+        prior = c;
         builder.append(c);
+      } else {
+        normalized = true;
+        position = p;
       }
     }
 
@@ -154,9 +155,26 @@ public class Utils extends io.vertx.core.impl.Utils {
     boolean isNormalised(){
       return normalized;
     }
+
+    void normaliseSkip(int p){
+      normalized = true;
+      position = p;
+    }
+
+    public String toString(){
+      return builder.toString();
+    }
+
+    boolean isScanMode(){
+      return scanMode;
+    }
+
+    int getPosition(){
+      return position;
+    }
   }
 
-  public static String newNormalisePath(String path, boolean urldecode) {
+  public static String normalisePath(String path, boolean urldecode) {
      if (path == null) {
         return "/";
       }
@@ -180,23 +198,34 @@ public class Utils extends io.vertx.core.impl.Utils {
   private static void normalise(ScannerBuilder builder, String path, boolean urldecode)
       throws UnsupportedEncodingException{
     if (path.charAt(0) != '/') {
-      builder.normalizeAppend('/');
+      builder.normalizeAppend('/', 0);
     }
-    for (int i = 0; i < path.length(); i++) {
+    for (int i = builder.getPosition(); i < path.length(); i++) {
       char c = path.charAt(i);
   
       if (c == '+') {
-        builder.append(' ');
+        builder.normalizeAppend(' ', i);
+        if (builder.isScanMode())
+          return;
       } else if (c == '/') {
         if (i == 0 || builder.prior() != '/')
           builder.append(c);
+        else {
+          builder.normaliseSkip(i);
+          if (builder.isScanMode())
+            return;
+        }
       } else if (urldecode && c == '%') {
         i = processEscapeSequence(path, builder, i);
+        if (builder.isScanMode() && builder.isNormalised())
+          return;
       } else if (c == '.') {
         if (i == 0 || builder.prior() != '.'){
           builder.append(c);
         }  else {
-          builder.normalizeDelete();
+          builder.normaliseSkip(i);
+          if (builder.isScanMode())
+            return;
         }
       } else {
         builder.append(c);
@@ -238,11 +267,13 @@ public class Utils extends io.vertx.core.impl.Utils {
       if (c == '/') {
         if (j == 0 || result.prior() != '/')
           result.append(c);
+        else
+          result.normaliseSkip(i);
       } else if (c == '.') {
         if (j == 0 || result.prior != '.')
           result.append(c);
         else
-          result.normalizeDelete();
+          result.normaliseSkip(i);
       } else {
         result.append(c);
       }
