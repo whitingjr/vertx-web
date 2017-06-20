@@ -90,7 +90,7 @@ public class Utils extends io.vertx.core.impl.Utils {
 
   static class ScannerBuilder{
     boolean scanMode = false;
-    boolean normalized = false;
+    boolean normalised = false;
     StringBuilder builder = null;
     char prior = ' ';
     char precedingPrior = ' ';
@@ -122,13 +122,13 @@ public class Utils extends io.vertx.core.impl.Utils {
       }
     }
 
-    void normalizeAppend(char c, int p){
+    void normaliseAppend(char c, int p){
       if (!scanMode){
         precedingPrior = prior;
         prior = c;
         builder.append(c);
       } else {
-        normalized = true;
+        normalised = true;
         position = p;
       }
     }
@@ -143,7 +143,7 @@ public class Utils extends io.vertx.core.impl.Utils {
         prior = c;
         builder.append(c);
       } else {
-        normalized = true;
+        normalised = true;
         position = p;
       }
     }
@@ -153,11 +153,11 @@ public class Utils extends io.vertx.core.impl.Utils {
     }
 
     boolean isNormalised(){
-      return normalized;
+      return normalised;
     }
 
     void normaliseSkip(int p){
-      normalized = true;
+      normalised = true;
       position = p;
     }
 
@@ -198,13 +198,13 @@ public class Utils extends io.vertx.core.impl.Utils {
   private static void normalise(ScannerBuilder builder, String path, boolean urldecode)
       throws UnsupportedEncodingException{
     if (path.charAt(0) != '/') {
-      builder.normalizeAppend('/', 0);
+      builder.normaliseAppend('/', 0);
     }
     for (int i = builder.getPosition(); i < path.length(); i++) {
       char c = path.charAt(i);
   
       if (c == '+') {
-        builder.normalizeAppend(' ', i);
+        builder.normaliseAppend(' ', i);
         if (builder.isScanMode())
           return;
       } else if (c == '/') {
