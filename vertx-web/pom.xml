@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.vertx</groupId>
     <artifactId>vertx-web-parent</artifactId>
-    <version>3.2.1</version>
+    <version>3.2.1-direct-buffers</version>
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
@@ -25,6 +25,11 @@
     <!--
     These should be optional so they're not dragged into web applications unless they're explicitly declared
      -->
+     <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+      <version>3.2.1-direct-buffers</version>
+    </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-auth-jwt</artifactId>
@@ -52,7 +57,7 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-hazelcast</artifactId>
-      <version>${project.version}</version>
+      <version>3.2.1</version>
       <scope>test</scope>
     </dependency>
 

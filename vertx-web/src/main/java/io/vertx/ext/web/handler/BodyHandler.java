@@ -46,6 +46,8 @@ public interface BodyHandler extends Handler<RoutingContext> {
    * Default value of whether form attributes should be merged into request params
    */
   boolean DEFAULT_MERGE_FORM_ATTRIBUTES = true;
+  
+  boolean DEFAULT_DELETE_UPLOADED_FILES_ON_END = true;
 
   /**
    * Create a body handler with defaults
