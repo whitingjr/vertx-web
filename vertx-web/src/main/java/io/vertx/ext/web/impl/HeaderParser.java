@@ -27,7 +27,12 @@ public class HeaderParser {
    * @return The list of (unparsed) parsable header value
    */
   public static <T extends ParsedHeaderValue> List<T> convertToParsedHeaderValues(String unparsedHeaderValue, Function<String, T> objectCreator) {
-    return split(unparsedHeaderValue, ',', objectCreator);
+    if (unparsedHeaderValue == null || unparsedHeaderValue.length() == 0) {
+      return Collections.emptyList();
+    }
+    List<T> parts = new LinkedList<>();
+    split(unparsedHeaderValue, ',', parts, objectCreator);
+    return parts;
   }
 
   /**
@@ -60,31 +65,34 @@ public class HeaderParser {
       valueCallback.accept(headerContent.substring(0, paramIndex));
 
       if (paramIndex < headerContent.length()) {
-
-        split(headerContent.substring(paramIndex + 1), ';', part -> {
-          int idx = part.indexOf('=');
-          if (idx != -1) {
-            final String key = part.substring(0, idx);
-            final String val = part.substring(idx + 1);
-
-            if ("q".equalsIgnoreCase(key)) {
-              try {
-                weightCallback.accept(Float.parseFloat(val));
-              } catch (NumberFormatException e) {
-                log.info("Found a \"q\" parameter with value \"{}\" which was unparsable", val);
-              }
-            } else {
-              parameterCallback.accept(key, unquote(val));
-            }
-          } else {
-            // no value associated with this key
-            parameterCallback.accept(part, null);
-          }
-
-          return null;
-        });
+        process(headerContent, paramIndex, valueCallback, weightCallback, parameterCallback);
       }
     }
+  }
+
+  private static void process(String headerContent, int paramIndex, Consumer<String> valueCallback, Consumer<Float> weightCallback, BiConsumer<String, String> parameterCallback){
+    split(headerContent.substring(paramIndex + 1), ';', new LinkedList<>() , part -> {
+      int idx = part.indexOf('=');
+      if (idx != -1) {
+        final String key = part.substring(0, idx);
+        final String val = part.substring(idx + 1);
+
+        if ("q".equalsIgnoreCase(key)) {
+          try {
+            weightCallback.accept(Float.parseFloat(val));
+          } catch (NumberFormatException e) {
+            log.info("Found a \"q\" parameter with value \"{}\" which was unparsable", val);
+          }
+        } else {
+          parameterCallback.accept(key, unquote(val));
+        }
+      } else {
+        // no value associated with this key
+        parameterCallback.accept(part, null);
+      }
+
+      return null;
+    });
   }
 
   public static void parseMIME(
@@ -171,18 +179,17 @@ public class HeaderParser {
     return parts;
   }
 
-  private static <T> List<T> split(String header, char split, Function<String, T> factory) {
-    if (header == null || header.length() == 0) {
-      return Collections.emptyList();
-    }
+  private static <T> void split(String header, char split, List<T> parts, Function<String, T> factory) {
+    int start = 0;
+    start = split(header, split, start, parts, factory);
 
-    final List<T> parts = new LinkedList<>();
+    remaining(start,header, parts, factory);
+  }
 
+  private static <T> int split(String header, char split, int start, List<T> parts, Function<String, T> factory){
     // state machine
     boolean quote = false;
-    int start = 0;
     char last = 0;
-
     for (int i = 0; i < header.length(); i++) {
       char ch = header.charAt(i);
       // trim initial white space
@@ -196,26 +203,12 @@ public class HeaderParser {
       }
 
       last = ch;
-      // splitting logic only applies outside quoted strings
-      if (!quote && ch == split) {
-        int end = i;
-        // trim end white space
-        for (int j = i - 1; j >= start; j--) {
-          if (header.charAt(j) == ' ') {
-            end--;
-            continue;
-          }
-          break;
-        }
-        // ignore empty
-        if (end - start > 0) {
-          parts.add(factory.apply(header.substring(start, end)));
-        }
-        start = i + 1;
-      }
+      start = unquotedSplit(header, start, parts, factory, i, quote, ch, split);
     }
+    return start;
+  }
 
-    // rest
+  private static <T> void remaining(int start, String header, List<T> parts, Function<String, T> factory){
     if (start < header.length()) {
       int end = header.length();
       // trim end white space
@@ -231,8 +224,26 @@ public class HeaderParser {
         parts.add(factory.apply(header.substring(start, end)));
       }
     }
+  }
 
-    return parts;
+  private static <T> int unquotedSplit(String header, int start, List<T> parts , Function<String, T> factory, int i, boolean quote, char ch, char split){
+    if (!quote && ch == split){
+      int end = i;
+      // trim end white space
+      for (int j = i - 1; j >= start; j--) {
+        if (header.charAt(j) == ' ') {
+          end--;
+          continue;
+        }
+        break;
+      }
+      // ignore empty
+      if (end - start > 0) {
+        parts.add(factory.apply(header.substring(start, end)));
+      }
+      return start + 1;
+    }
+    return start;
   }
 
   private static String unquote(String value) {

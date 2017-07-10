@@ -249,39 +249,7 @@ public class RouteImpl implements Route {
 
       Matcher m = pattern.matcher(path);
       if (m.matches()) {
-        if (m.groupCount() > 0) {
-          Map<String, String> params = new HashMap<>(m.groupCount());
-          if (groups != null) {
-            // Pattern - named params
-            // decode the path as it could contain escaped chars.
-            for (int i = 0; i < groups.size(); i++) {
-              final String k = groups.get(i);
-              final String value = Utils.urlDecode(m.group("p" + i), false);
-              if (!request.params().contains(k)) {
-                params.put(k, value);
-              } else {
-                context.pathParams().put(k, value);
-              }
-            }
-          } else {
-            // Straight regex - un-named params
-            // decode the path as it could contain escaped chars.
-            for (int i = 0; i < m.groupCount(); i++) {
-              String group = m.group(i + 1);
-              if(group != null) {
-                final String k = "param" + i;
-                final String value = Utils.urlDecode(group, false);
-                if (!request.params().contains(k)) {
-                  params.put(k, value);
-                } else {
-                  context.pathParams().put(k, value);
-                }
-              }
-            }
-          }
-          request.params().addAll(params);
-          context.pathParams().putAll(params);
-        }
+        processMatches(m, context, request);
       } else {
         return false;
       }
@@ -314,6 +282,43 @@ public class RouteImpl implements Route {
       return false;
     }
     return true;
+  }
+
+  private void processMatches(Matcher m, RoutingContext context, HttpServerRequest request){
+    if (m.groupCount() > 0) {
+      Map<String, String> params = new HashMap<>(m.groupCount());
+      if (groups != null) {
+        // Pattern - named params
+        // decode the path as it could contain escaped chars.
+        for (int i = 0; i < groups.size(); i++) {
+          final String k = groups.get(i);
+          final String value = Utils.urlDecode(m.group("p" + i), false);
+          if (!request.params().contains(k)) {
+            params.put(k, value);
+          } else {
+            context.pathParams().put(k, value);
+          }
+        }
+      } else {
+        // Straight regex - un-named params
+        // decode the path as it could contain escaped chars.
+        for (int i = 0; i < m.groupCount(); i++) {
+          String group = m.group(i + 1);
+          if(group != null) {
+            final String k = "param" + i;
+            final String value = Utils.urlDecode(group, false);
+            if (!request.params().contains(k)) {
+              params.put(k, value);
+            } else {
+              context.pathParams().put(k, value);
+            }
+          }
+        }
+      }
+      
+      request.params().addAll(params);
+      context.pathParams().putAll(params);
+    }
   }
 
   RouterImpl router() {
