@@ -30,9 +30,9 @@ public class HeaderParser {
     if (unparsedHeaderValue == null || unparsedHeaderValue.length() == 0) {
       return Collections.emptyList();
     }
-    List<T> parts = new LinkedList<>();
-    split(unparsedHeaderValue, ',', parts, objectCreator);
-    return parts;
+//    List<T> parts = new LinkedList<>();
+    return split(unparsedHeaderValue, ',', objectCreator);
+//    return parts;
   }
 
   /**
@@ -71,7 +71,7 @@ public class HeaderParser {
   }
 
   private static void process(String headerContent, int paramIndex, Consumer<String> valueCallback, Consumer<Float> weightCallback, BiConsumer<String, String> parameterCallback){
-    split(headerContent.substring(paramIndex + 1), ';', new LinkedList<>() , part -> {
+    split(headerContent.substring(paramIndex + 1), ';', part -> {
       int idx = part.indexOf('=');
       if (idx != -1) {
         final String key = part.substring(0, idx);
@@ -179,11 +179,13 @@ public class HeaderParser {
     return parts;
   }
 
-  private static <T> void split(String header, char split, List<T> parts, Function<String, T> factory) {
+  private static <T> List<T> split(String header, char split, Function<String, T> factory) {
     int start = 0;
+    List<T> parts = new LinkedList<T>();
     start = split(header, split, start, parts, factory);
 
     remaining(start,header, parts, factory);
+    return parts;
   }
 
   private static <T> int split(String header, char split, int start, List<T> parts, Function<String, T> factory){
