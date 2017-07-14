@@ -30,9 +30,7 @@ public class HeaderParser {
     if (unparsedHeaderValue == null || unparsedHeaderValue.length() == 0) {
       return Collections.emptyList();
     }
-//    List<T> parts = new LinkedList<>();
     return split(unparsedHeaderValue, ',', objectCreator);
-//    return parts;
   }
 
   /**
