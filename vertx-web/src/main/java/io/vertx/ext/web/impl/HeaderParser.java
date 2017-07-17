@@ -210,6 +210,7 @@ public class HeaderParser {
 
   private static <T> void remaining(int start, String header, List<T> parts, Function<String, T> factory){
     if (start < header.length()) {
+      /*
       int end = header.length();
       // trim end white space
       for (int j = header.length() - 1; j >= start; j--) {
@@ -223,6 +224,12 @@ public class HeaderParser {
       if (end - start > 0) {
         parts.add(factory.apply(header.substring(start, end)));
       }
+      */
+      String h = header.trim();
+      if (!"".equals(h)){
+        parts.add(factory.apply(header.substring(start, end)));
+      }
+      
     }
   }
 
