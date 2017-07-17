@@ -227,7 +227,7 @@ public class HeaderParser {
       */
       String h = header.trim();
       if (!"".equals(h)){
-        parts.add(factory.apply(header.substring(start, end)));
+        parts.add(factory.apply(h));
       }
       
     }
