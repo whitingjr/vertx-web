@@ -179,7 +179,7 @@ public class HeaderParser {
 
   private static <T> List<T> split(String header, char split, Function<String, T> factory) {
     int start = 0;
-    List<T> parts = new LinkedList<T>();
+    final List<T> parts = new LinkedList<>();
     start = split(header, split, start, parts, factory);
 
     remaining(start,header, parts, factory);
