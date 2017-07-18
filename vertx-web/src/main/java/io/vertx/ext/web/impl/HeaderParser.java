@@ -19,6 +19,7 @@ public class HeaderParser {
   private static final Comparator<ParsedHeaderValue> HEADER_SORTER =
     (ParsedHeaderValue left, ParsedHeaderValue right) -> right.weightedOrder() - left.weightedOrder();
 
+  private static int start = 0;
   /**
    * Transforms each header value into the given ParsableHeaderValue
    *
@@ -178,15 +179,15 @@ public class HeaderParser {
   }
 
   private static <T> List<T> split(String header, char split, Function<String, T> factory) {
-    int start = 0;
+    start = 0;
     final List<T> parts = new LinkedList<>();
-    start = split(header, split, start, parts, factory);
+    split(header, split, parts, factory);
 
-    remaining(start,header, parts, factory);
+    remaining(header, parts, factory);
     return parts;
   }
 
-  private static <T> int split(String header, char split, int start, List<T> parts, Function<String, T> factory){
+  private static <T> int split(String header, char split, List<T> parts, Function<String, T> factory){
     // state machine
     boolean quote = false;
     char last = 0;
@@ -208,9 +209,8 @@ public class HeaderParser {
     return start;
   }
 
-  private static <T> void remaining(int start, String header, List<T> parts, Function<String, T> factory){
+  private static <T> void remaining(String header, List<T> parts, Function<String, T> factory){
     if (start < header.length()) {
-      /*
       int end = header.length();
       // trim end white space
       for (int j = header.length() - 1; j >= start; j--) {
@@ -224,12 +224,6 @@ public class HeaderParser {
       if (end - start > 0) {
         parts.add(factory.apply(header.substring(start, end)));
       }
-      */
-      String h = header.trim();
-      if (!"".equals(h)){
-        parts.add(factory.apply(h));
-      }
-      
     }
   }
 
