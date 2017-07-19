@@ -213,7 +213,7 @@ public class HeaderParser {
     if (start < header.length()) {
       int end = header.length();
       // trim end white space
-      for (int j = header.length() - 1; j >= start; j--) {
+      for (int j = end - 1; j >= start; j--) {
         if (header.charAt(j) == ' ') {
           end--;
           continue;
