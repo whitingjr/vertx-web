@@ -187,7 +187,7 @@ public class HeaderParser {
     return parts;
   }
 
-  private static <T> int split(String header, char split, List<T> parts, Function<String, T> factory){
+  private static <T> void split(String header, char split, List<T> parts, Function<String, T> factory){
     // state machine
     boolean quote = false;
     char last = 0;
@@ -204,9 +204,8 @@ public class HeaderParser {
       }
 
       last = ch;
-      start = unquotedSplit(header, start, parts, factory, i, quote, ch, split);
+      unquotedSplit(header, parts, factory, i, quote, ch, split);
     }
-    return start;
   }
 
   private static <T> void remaining(String header, List<T> parts, Function<String, T> factory){
@@ -227,7 +226,7 @@ public class HeaderParser {
     }
   }
 
-  private static <T> int unquotedSplit(String header, int start, List<T> parts , Function<String, T> factory, int i, boolean quote, char ch, char split){
+  private static <T> void unquotedSplit(String header, List<T> parts , Function<String, T> factory, int i, boolean quote, char ch, char split){
     if (!quote && ch == split){
       int end = i;
       // trim end white space
@@ -242,9 +241,8 @@ public class HeaderParser {
       if (end - start > 0) {
         parts.add(factory.apply(header.substring(start, end)));
       }
-      return start + 1;
+      start = i + 1;
     }
-    return start;
   }
 
   private static String unquote(String value) {
