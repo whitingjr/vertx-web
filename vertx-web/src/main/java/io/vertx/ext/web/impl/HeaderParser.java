@@ -41,7 +41,9 @@ public class HeaderParser {
    * @return The same object as inserted
    */
   public static <T extends ParsedHeaderValue> List<T> sort(List<T> headers) {
-    headers.sort(HEADER_SORTER);
+    if (headers.size() > 1){
+      headers.sort(HEADER_SORTER);
+    }
     return headers;
   }
 
@@ -181,13 +183,6 @@ public class HeaderParser {
   private static <T> List<T> split(String header, char split, Function<String, T> factory) {
     start = 0;
     final List<T> parts = new LinkedList<>();
-    split(header, split, parts, factory);
-
-    remaining(header, parts, factory);
-    return parts;
-  }
-
-  private static <T> void split(String header, char split, List<T> parts, Function<String, T> factory){
     // state machine
     boolean quote = false;
     char last = 0;
@@ -204,45 +199,47 @@ public class HeaderParser {
       }
 
       last = ch;
-      unquotedSplit(header, parts, factory, i, quote, ch, split);
+      if (!quote && ch == split){
+        unquotedSplit(header, parts, factory, i, quote, ch, split);
+      }
     }
+    if (start < header.length()) {
+      remaining(header, parts, factory);
+    }
+    return parts;
   }
 
   private static <T> void remaining(String header, List<T> parts, Function<String, T> factory){
-    if (start < header.length()) {
-      int end = header.length();
-      // trim end white space
-      for (int j = end - 1; j >= start; j--) {
-        if (header.charAt(j) == ' ') {
-          end--;
-          continue;
-        }
-        break;
+    int end = header.length();
+    // trim end white space
+    for (int j = end - 1; j >= start; j--) {
+      if (header.charAt(j) == ' ') {
+        end--;
+        continue;
       }
-      // ignore empty
-      if (end - start > 0) {
-        parts.add(factory.apply(header.substring(start, end)));
-      }
+      break;
+    }
+    // ignore empty
+    if (end - start > 0) {
+      parts.add(factory.apply(header.substring(start, end)));
     }
   }
 
   private static <T> void unquotedSplit(String header, List<T> parts , Function<String, T> factory, int i, boolean quote, char ch, char split){
-    if (!quote && ch == split){
-      int end = i;
-      // trim end white space
-      for (int j = i - 1; j >= start; j--) {
-        if (header.charAt(j) == ' ') {
-          end--;
-          continue;
-        }
-        break;
+    int end = i;
+    // trim end white space
+    for (int j = i - 1; j >= start; j--) {
+      if (header.charAt(j) == ' ') {
+        end--;
+        continue;
       }
-      // ignore empty
-      if (end - start > 0) {
-        parts.add(factory.apply(header.substring(start, end)));
-      }
-      start = i + 1;
+      break;
     }
+    // ignore empty
+    if (end - start > 0) {
+      parts.add(factory.apply(header.substring(start, end)));
+    }
+    start = i + 1;
   }
 
   private static String unquote(String value) {
