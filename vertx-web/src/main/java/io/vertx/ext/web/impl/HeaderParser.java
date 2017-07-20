@@ -20,6 +20,9 @@ public class HeaderParser {
     (ParsedHeaderValue left, ParsedHeaderValue right) -> right.weightedOrder() - left.weightedOrder();
 
   private static int start = 0;
+  private static String header = null;
+  private static char split = ',';
+
   /**
    * Transforms each header value into the given ParsableHeaderValue
    *
@@ -31,7 +34,8 @@ public class HeaderParser {
     if (unparsedHeaderValue == null || unparsedHeaderValue.length() == 0) {
       return Collections.emptyList();
     }
-    return split(unparsedHeaderValue, ',', objectCreator);
+    header = unparsedHeaderValue;
+    return split(',', objectCreator);
   }
 
   /**
@@ -180,18 +184,19 @@ public class HeaderParser {
     return parts;
   }
 
-  private static <T> List<T> split(String header, char split, Function<String, T> factory) {
+  private static <T> List<T> split(char s, Function<String, T> factory) {
     start = 0;
-    final List<T> parts = new LinkedList<>();
+    split = s;
+    final List<T> parts = new LinkedList<T>();
     // state machine
-    walk(header, split, parts, factory);
+    walk(parts, factory);
     if (start < header.length()) {
-      remaining(header, parts, factory);
+      remaining(parts, factory);
     }
     return parts;
   }
 
-  private static <T> void walk(String header, char split, List<T> parts, Function<String, T> factory){
+  private static <T> void walk(List<T> parts, Function<String, T> factory){
     boolean quote = false;
     char last = 0;
     for (int i = 0; i < header.length(); i++) {
@@ -208,12 +213,12 @@ public class HeaderParser {
 
       last = ch;
       if (!quote && ch == split){
-        unquotedSplit(header, parts, factory, i, quote, ch, split);
+        unquotedSplit(parts, factory, i, quote, ch, split);
       }
     }
   }
 
-  private static <T> void remaining(String header, List<T> parts, Function<String, T> factory){
+  private static <T> void remaining(List<T> parts, Function<String, T> factory){
     int end = header.length();
     // trim end white space
     for (int j = end - 1; j >= start; j--) {
@@ -229,7 +234,7 @@ public class HeaderParser {
     }
   }
 
-  private static <T> void unquotedSplit(String header, List<T> parts , Function<String, T> factory, int i, boolean quote, char ch, char split){
+  private static <T> void unquotedSplit(List<T> parts , Function<String, T> factory, int i, boolean quote, char ch, char split){
     int end = i;
     // trim end white space
     for (int j = i - 1; j >= start; j--) {
