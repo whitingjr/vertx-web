@@ -52,7 +52,7 @@ public class HeaderParser {
    *
    * @param headerContent
    * @param valueCallback
-   * @param weightCallback
+   * @param weightCallbackc
    * @param parameterCallback
    */
   public static void parseHeaderValue(String headerContent, Consumer<String> valueCallback, Consumer<Float> weightCallback, BiConsumer<String, String> parameterCallback) {
@@ -184,6 +184,14 @@ public class HeaderParser {
     start = 0;
     final List<T> parts = new LinkedList<>();
     // state machine
+    walk(header, split, parts, factory);
+    if (start < header.length()) {
+      remaining(header, parts, factory);
+    }
+    return parts;
+  }
+
+  private static <T> void walk(String header, char split, List<T> parts, Function<String, T> factory){
     boolean quote = false;
     char last = 0;
     for (int i = 0; i < header.length(); i++) {
@@ -203,10 +211,6 @@ public class HeaderParser {
         unquotedSplit(header, parts, factory, i, quote, ch, split);
       }
     }
-    if (start < header.length()) {
-      remaining(header, parts, factory);
-    }
-    return parts;
   }
 
   private static <T> void remaining(String header, List<T> parts, Function<String, T> factory){
