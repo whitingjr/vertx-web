@@ -185,6 +185,15 @@ public class HeaderParser {
     start = 0;
     final List<T> parts = new LinkedList<T>();
     // state machine
+//    walk(header, split, parts, factory);
+    /*if (start < header.length()) {
+      remaining(header, parts, factory);
+    }
+    return parts;*/
+    return doSplit(header, split, factory, parts);
+  }
+
+  private static <T> List<T> doSplit(String header, char split, Function<String, T> factory, List<T> parts) {
     walk(header, split, parts, factory);
     if (start < header.length()) {
       remaining(header, parts, factory);
