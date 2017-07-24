@@ -226,7 +226,7 @@ public class RouteImpl implements Route {
     }
   }
 
-  synchronized boolean matches(RoutingContext context, String mountPoint, boolean failure) {
+  synchronized boolean matches(RoutingContext context, String path, String mountPoint, boolean failure) { {
 
     if (failure && !hasNextFailureHandler() || !failure && !hasNextContextHandler()) {
       return false;
@@ -242,10 +242,10 @@ public class RouteImpl implements Route {
       return false;
     }
     if (pattern != null) {
-      String path = useNormalisedPath ? Utils.normalizePath(context.request().path()) : context.request().path();
+      /*String path = useNormalisedPath ? Utils.normalizePath(context.request().path()) : context.request().path();
       if (mountPoint != null) {
         path = path.substring(mountPoint.length());
-      }
+      }*/
 
       Matcher m = pattern.matcher(path);
       if (m.matches()) {
@@ -441,5 +441,9 @@ public class RouteImpl implements Route {
   synchronized protected void resetIndexes() {
     actualFailureHandlerIndex = 0;
     actualHandlerIndex = 0;
+  }
+
+  boolean isUseNormalisedPath(){
+    return useNormalisedPath;
   }
 }

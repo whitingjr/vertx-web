@@ -90,7 +90,12 @@ public abstract class RoutingContextImplBase implements RoutingContext {
     while (iter.hasNext()) { // Search for more handlers
       RouteImpl route = iter.next();
       route.resetIndexes();
-      if (route.matches(this, mountPoint(), failed)) {
+//      if (route.matches(this, mountPoint(), failed)) {
+      String path = route.isUseNormalisedPath() ? Utils.normalizePath(this.request().path()) : this.request().path();
+      if (mountPoint() != null) {
+        path = path.substring(mountPoint().length());
+      }
+      if (route.matches(this, path, mountPoint(), failed)) {
         if (log.isTraceEnabled()) log.trace("Route matches: " + route);
         try {
           currentRoute = route;
